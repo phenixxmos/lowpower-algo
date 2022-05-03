@@ -18,10 +18,10 @@ class Detection(Enum):
             PLACID=-1
 
 class activity_detector:
-    def __init__(self, block_size=240, block_count=10,Fs=16000):
+    def __init__(self, block_size=240, buffer_count=334,Fs=16000):
         self.block_size = block_size
-        self.block_count = block_count
-        self.time_domain_buffer = np.zeros(self.block_size * self.block_count)
+        self.buffer_count = buffer_count
+        self.time_domain_buffer = np.zeros(self.block_size * self.buffer_count)
         self.threshold = 1.0
         self.samplerate = Fs
         self.block_tot=0
@@ -31,8 +31,7 @@ class activity_detector:
         # this is UNTESTED and is probably wrong - maybe they should go the other way round?
         self.time_domain_buffer = np.concatenate((new_samples, self.time_domain_buffer[:-self.block_size]))
 
-        if self.block_tot >= self.block_count:
-        
+        if self.block_tot >= self.buffer_count:
             if self.samplerate==16000:
                 wieghted=spsig.lfilter(ccir_16k_b,ccir_16k_a,self.time_domain_buffer)
             elif self.samplerate==32000:
@@ -40,26 +39,23 @@ class activity_detector:
             elif self.samplerate==48000:
                 wieghted=spsig.lfilter(ccir_48k_b,ccir_48k_a,self.time_domain_buffer)
             else:
-                print("Unsupported Samplerate.")
-                #output = Detection.BUFFERING.value
+   
                 output = 0
                 
             kurt = spstat.kurtosis(wieghted)
             skew = spstat.skew(wieghted)
             normality_test = kurt - skew**2.0
-
+            #print("Kurtosis : ",kurt," Skewness : ",skew," Normality Test: ",normality_test)
             if normality_test >= self.threshold:
-                #output = Detection.ACTIVITY.value
-                print("Activity Detected")
+
                 output = 1
             else:
-                #output = Detection.PLACID.value
-                print("Placid Activity")
+
                 output = -1
 
         else:
-            #output = Detection.BUFFERING.value
             output = 0
+        #print(Detection(output))
         return output
         
     def increment_block(self):

@@ -12,17 +12,21 @@ def parse_arguments():
     parser.add_argument("input", nargs='?', help="wav file to process", default='input.wav')
     parser.add_argument("output", nargs='?', help="output of activity detection", default='output.wav')
     parser.add_argument("block_size", nargs='?',type=int, help="number of samples in a block", default=240)
-    parser.add_argument("block_count", nargs='?',type=int, help="number of blocks to use", default=10)
     parser.add_argument("buffer_count",nargs='?',type=int,help="the number of frames to use for the time buffer",default=334)
     parser.parse_args()
     args = parser.parse_args()
     return args
+"""
+input_data - audio data samples
+filel - length of the input file
+block_size - the size of a processing box
+buffer_count - the number of buffer periods to use
+"""
 
-
-def test_data(input_data, block_size=240, block_count=350, buffer_count=334,fs=16000):
+def test_data(input_data, block_size=240, buffer_count=334,fs=16000):
 
     file_length = len(input_data)
-    output = np.zeros(block_size * block_count)
+    output = np.zeros(file_length)
 
     act_det = activity.activity_detector(block_size, buffer_count,fs)
 
@@ -36,13 +40,13 @@ def test_data(input_data, block_size=240, block_count=350, buffer_count=334,fs=1
     return output
 
 
-def test_file(input_file, output_file, block_size=240, block_count=350, buffer_count=334):
+def test_file(input_file, output_file, block_size=240, buffer_count=334):
 
     input_rate, input_wav_file = scipy.io.wavfile.read(input_file, 'r')
-    if (sum(input_wav_file.shape)-input_wav_file.shape[0])!=0:
+    if input_wav_file.ndim>1:
         input_wav_data = input_wav_file[:, 0] # grab the first channel
 
-    output = test_data(input_wav_data, block_size, block_count,input_rate)
+    output = test_data(input_wav_data, block_size, buffer_count,input_rate)
 
     scipy.io.wavfile.write(output_file, input_rate,output)
 
@@ -51,4 +55,4 @@ if __name__ == "__main__":
     #The number of samples of data in the frame
 
     args = parse_arguments()
-    test_file(args.input, args.output, args.block_size, args.block_count, args.buffer_count)
+    test_file(args.input, args.output, args.block_size, args.buffer_count)
