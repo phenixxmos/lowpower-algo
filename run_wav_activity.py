@@ -23,7 +23,7 @@ block_size - the size of a processing box
 buffer_count - the number of buffer periods to use
 """
 
-def test_data(input_data, block_size=240, buffer_count=334,fs=16000):
+def run_data(input_data, block_size=240, buffer_count=334,fs=16000):
 
     file_length = len(input_data)
     output = np.zeros(file_length)
@@ -40,13 +40,13 @@ def test_data(input_data, block_size=240, buffer_count=334,fs=16000):
     return output
 
 
-def test_file(input_file, output_file, block_size=240, buffer_count=334):
+def run_file(input_file, output_file, block_size=240, buffer_count=334):
 
     input_rate, input_wav_file = scipy.io.wavfile.read(input_file, 'r')
     if input_wav_file.ndim>1:
         input_wav_data = input_wav_file[:, 0] # grab the first channel
 
-    output = test_data(input_wav_data, block_size, buffer_count,input_rate)
+    output = run_data(input_wav_data, block_size, buffer_count,input_rate)
 
     scipy.io.wavfile.write(output_file, input_rate,output)
 
@@ -55,4 +55,5 @@ if __name__ == "__main__":
     #The number of samples of data in the frame
 
     args = parse_arguments()
-    test_file(args.input, args.output, args.block_size, args.buffer_count)
+    run_file(args.input, args.output, args.block_size, args.buffer_count)
+

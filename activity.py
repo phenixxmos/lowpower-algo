@@ -25,44 +25,32 @@ class activity_detector:
         self.time_domain_buffer = np.zeros(self.block_size * self.buffer_count)
         self.threshold = 1.0
         self.samplerate = Fs
-        self.block_tot=0
-        self.filter_prefilter=np.zeros(1)
+        self.block_tot = 0
+        self.filter_prefilter = None
+
+        if self.samplerate==16000:
+            self.ccir_b = ccir_16k_b
+            self.ccir_a = ccir_16k_a
+        elif self.samplerate==32000:
+            self.ccir_b = ccir_32k_b
+            self.ccir_a = ccir_32k_a
+        elif self.samplerate==48000:
+            self.ccir_b = ccir_48k_b
+            self.ccir_a = ccir_48k_a
+        else:
+            raise ValueError(f'sample frequency {Fs} is not supported')
+
+    
     
     def process_frame(self, new_samples):
         # add the new samples to the buffer and shift along the old samples
         # this is UNTESTED and is probably wrong - maybe they should go the other way round?
-  
-        if self.buffer_count==0:
-            if self.samplerate==16000:
-                self.time_domain_buffer = np.concatenate((self.time_domain_buffer[:-self.block_size]),spsig.lfilter(ccir_16k_b,ccir_16k_a,new_samples))
-                self.filter_prefilter=np.zeros(ccir_16k_a.size-1)
-                print(self.filter_prefilter.size)
-            elif self.samplerate==32000:
-                self.time_domain_buffer = np.concatenate((self.time_domain_buffer[:-self.block_size]),spsig.lfilter(ccir_32k_b,ccir_32k_a,new_samples))
-                self.filter_prefilter=np.zeros(ccir_32k_a.size-1)
-                print(self.filter_prefilter.size)
-            elif self.samplerate==48000:
-                self.time_domain_buffer = np.concatenate((self.time_domain_buffer[:-self.block_size]),spsig.lfilter(ccir_48k_b,ccir_48k_a,new_samples))
-                self.filter_prefilter=np.zeros(ccir_48k_a.size-1)
-                print(self.filter_prefilter.size)
-            else:
-                output=0
-        else:
-            if self.samplerate==16000:
-                print(self.filter_prefilter.size)
-                self.time_domain_buffer = np.concatenate((self.time_domain_buffer[:-self.block_size]),spsig.lfilter(ccir_16k_b,ccir_16k_a,new_samples,zi=self.filter_prefilter))
-                self.filter_prefilter=spsig.lfiltic(ccir_16k_b,ccir_16k_a,self.time_domain_buffer[self.block_size:(self.block_size+ccir_16k_a.size-1)])
-                print(self.filter_prefilter.size)
-            elif self.samplerate==32000:
-                print(self.filter_prefilter.size)
-                self.time_domain_buffer = np.concatenate((self.time_domain_buffer[:-self.block_size]),spsig.lfilter(ccir_32k_b,ccir_32k_a,new_samples,zi=self.filter_prefilter))
-                self.filter_prefilter=spsig.lfiltic(ccir_32k_b,ccir_32k_a,self.time_domain_buffer[self.block_size:(self.block_size+ccir_32k_a.size-1)])
-            elif self.samplerate==48000:
-                print(self.filter_prefilter.size)
-                self.time_domain_buffer = np.concatenate((self.time_domain_buffer[:-self.block_size]),spsig.lfilter(ccir_48k_b,ccir_48k_a,new_samples,zi=self.filter_prefilter))
-                self.filter_prefilter=spsig.lfiltic(ccir_48k_b,ccir_48k_a,self.time_domain_buffer[self.block_size:(self.block_size+ccir_48k_a.size-1)])
-            else:
-                output=0
+        
+        if self.block_tot == 0:
+            self.filter_prefilter = spsig.lfilter_zi(self.ccir_b, self.ccir_a) * new_samples[0]
+
+        new_samples_filtered, self.filter_prefilter = spsig.lfilter(self.ccir_b, self.ccir_a, new_samples, zi=self.filter_prefilter)
+        self.time_domain_buffer = np.concatenate((self.time_domain_buffer[:-self.block_size], new_samples_filtered), axis=0)
 
         if self.block_tot >= self.buffer_count:
                 
